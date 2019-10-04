@@ -91,46 +91,6 @@
             </tbody>
           </table>
         </div>
-        <!-- Weapon -->
-        <div class="table-wrapper">
-          <table class="stat-table">
-            <thead>
-              <tr class="table-title">
-                <th colspan="5">Weapon</th>
-              </tr>
-              <tr class="table-headers">
-                <th>Name</th>
-                <th>Ns</th>
-                <th>R</th>
-                <th>AP</th>
-                <th>D</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="stat-inputs">
-                <td>
-                  <input v-model="weapon.name" />
-                </td>
-                <td>
-                  <input v-model="weapon.numberShots" />
-                </td>
-                <td>
-                  <input v-model="weapon.range" />
-                </td>
-                <td>
-                  <input v-model="weapon.armorP" />
-                </td>
-                <td>
-                  <input v-model="weapon.damage" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <!-- Input Row - Defender -->
-      <div class="row">
-        <!-- Defender -->
         <div class="table-wrapper">
           <table class="stat-table">
             <thead>
@@ -162,6 +122,57 @@
             </tbody>
           </table>
         </div>
+        <!-- Weapon -->
+        <div class="table-wrapper">
+          <table class="stat-table">
+            <thead>
+              <tr class="table-title">
+                <th colspan="6">Weapon</th>
+              </tr>
+              <tr class="table-headers">
+                <th>Name</th>
+                <th>Ns</th>
+                <th>R</th>
+                <th>S</th>
+                <th>AP</th>
+                <th>D</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="stat-inputs">
+                <td>
+                  <select v-model="weapon">
+                    <option :value="weapon" default disabled>{{weapon.name}}</option>
+                    <option
+                      v-for="(weapon,idx) in allWeapons"
+                      :value="weapon"
+                      :key="weapon.name+idx"
+                    >{{weapon.name}}</option>
+                  </select>
+                </td>
+                <td>
+                  <input v-model="weapon.numberShots" />
+                </td>
+                <td>
+                  <input v-model="weapon.range" />
+                </td>
+                <td>
+                  <input v-model="weapon.strength" />
+                </td>
+                <td>
+                  <input v-model="weapon.armorP" />
+                </td>
+                <td>
+                  <input v-model="weapon.damage" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <!-- Input Row - Defender -->
+      <div class="row">
+        <!-- Defender -->
       </div>
       <!-- Results Row -->
       <div class="row">
@@ -182,9 +193,9 @@
             <tbody>
               <tr class="results">
                 <td></td>
-                <td>1</td>
-                <td>1</td>
-                <td>1</td>
+                <td>{{attacker.weaponSkill}}+</td>
+                <td>{{results.woundRoll}}+</td>
+                <td>{{results.armorSave}}+</td>
               </tr>
             </tbody>
           </table>
@@ -206,47 +217,44 @@
             <tbody>
               <tr class="results">
                 <td></td>
-                <td>1</td>
-                <td>1</td>
-                <td>1</td>
+                <td>{{Math.round(results.toHitOdds*100)}} %</td>
+                <td>{{Math.round(results.woundOdds*100)}} %</td>
+                <td>{{Math.round(results.armorSaveOdds*100)}} %</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Damage -->
+        <div class="table-wrapper">
+          <table class="stat-table">
+            <thead>
+              <tr class="table-title">
+                <th colspan="2">Potential</th>
+              </tr>
+              <tr class="table-headers">
+                <th>Wounds</th>
+                <th>Damage</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="results">
+                <td>{{Math.round(results.numberOfSuccessfulWounds)}}</td>
+                <td>{{ Math.round(results.numberOfSuccessfulWounds * weapon.damage)}}</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
       <!-- Damage Table Row -->
-      <div class="row">
-        <!-- Damage -->
-        <div class="table-wrapper">
-          <table class="stat-table">
-            <thead>
-              <tr class="table-title">
-                <th colspan="4">Chance Percentages</th>
-              </tr>
-              <tr class="table-headers">
-                <th>Damage</th>
-                <th>Chance</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                class="results"
-                v-for="(shots, index) in parseInt(weapon.numberShots) * parseInt(attacker.models)||1"
-                :key="index+'damage'"
-              >
-                <td>{{ shots * weapon.damage}}</td>
-                <td>1</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <div class="row"></div>
+      <button @click="onShoot" class="shoot">Shoot</button>
     </div>
   </div>
 </template>
 
 <script>
 import Logo from "~/components/Logo.vue";
+import axios from "axios";
 
 export default {
   components: {
@@ -256,25 +264,61 @@ export default {
     return {
       attacker: {
         models: 1,
-        weaponSkill: 2,
-        ballistic: 2,
-        strength: 2,
+        weaponSkill: 3,
+        ballistic: 3,
+        strength: 4,
         attacks: 2
       },
       weapon: {
-        name: "",
-        numberShots: 10,
-        range: 1,
-        armorP: 1,
-        damage: 1
+        name: "Select Weapon",
+        type: "",
+        range: 0,
+        numberShots: 0,
+        armorP: 0,
+        damage: 0
       },
       defender: {
         models: 1,
-        toughness: 1,
-        armorSave: 1,
+        toughness: 3,
+        armorSave: 5,
         wounds: 1
-      }
+      },
+      results: {
+        toHitOdds: 0,
+        woundRoll: 6,
+        woundOdds: 0,
+        armorSave: 6,
+        armorSaveOdds: 0,
+        numberOfSuccessfulWounds: 0
+      },
+      allWeapons: null
     };
+  },
+  mounted() {
+    axios.get("http://localhost:5000/api/weapons").then(response => {
+      this.allWeapons = response.data.weapons;
+    });
+  },
+  methods: {
+    onShoot() {
+      const stats = {
+        strength: this.weapon.strength,
+        toughness: this.defender.toughness
+      };
+      axios
+        .post("http://localhost:5000/api/wound", {
+          strength: this.weapon.strength,
+          armorP: this.weapon.armorP,
+          toughness: this.defender.toughness,
+          save: this.defender.armorSave,
+          weaponSkill: this.attacker.weaponSkill,
+          totalShots:
+            parseInt(this.weapon.numberShots) * parseInt(this.attacker.models)
+        })
+        .then(response => {
+          this.results = response.data.results;
+        });
+    }
   }
 };
 </script>
@@ -324,6 +368,7 @@ export default {
   overflow: hidden;
   border: 2px solid black;
   margin: 10px;
+  height: 100%;
 }
 .key-table {
   border-collapse: collapse;
@@ -377,6 +422,11 @@ export default {
       width: 48px;
       padding: 8px;
     }
+    select {
+      border: none;
+      background: none;
+      font-size: 16px;
+    }
   }
   .results {
     td {
@@ -384,6 +434,9 @@ export default {
       height: 18px;
       padding: 9px;
     }
+  }
+  .shoot{
+    font-size: 20px;
   }
 }
 </style>
